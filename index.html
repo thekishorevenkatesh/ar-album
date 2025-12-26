@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>AR Photo Album</title>
+<title>Happy Birthday Harshi</title>
 
 <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
@@ -20,6 +20,7 @@ body { margin: 0; overflow: hidden; font-family: Arial; }
   background: rgba(0,0,0,0.6);
   padding: 8px;
   z-index: 2;
+  font-size: 16px;
 }
 #toggle {
   position: fixed;
@@ -30,11 +31,12 @@ body { margin: 0; overflow: hidden; font-family: Arial; }
   padding: 8px 12px;
   border-radius: 6px;
   z-index: 2;
+  cursor: pointer;
 }
 #zoom {
   position: fixed;
   inset: 0;
-  background: black;
+  background: rgba(0,0,0,0.95);
   display: none;
   justify-content: center;
   align-items: center;
@@ -43,6 +45,8 @@ body { margin: 0; overflow: hidden; font-family: Arial; }
 #zoom img {
   max-width: 95%;
   max-height: 95%;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255,255,255,0.4);
 }
 </style>
 </head>
@@ -73,7 +77,7 @@ body { margin: 0; overflow: hidden; font-family: Arial; }
     position="0 0 0"
     rotation="-90 0 0"
     width="1"
-    height="0.7"
+    height="0.75"
     material="shader:flat; opacity:1">
   </a-plane>
 </a-marker>
@@ -84,7 +88,7 @@ body { margin: 0; overflow: hidden; font-family: Arial; }
     position="0 0 -2"
     rotation="0 0 0"
     width="1"
-    height="0.7"
+    height="0.75"
     material="shader:flat; opacity:1">
   </a-plane>
 </a-entity>
@@ -107,10 +111,19 @@ const zoom = document.querySelector("#zoom");
 const zoomImg = zoom.querySelector("img");
 const music = document.querySelector("#bgm");
 
+// Set image with correct aspect ratio
 function setPhoto() {
+  const imgEl = document.querySelector(photos[current]);
+  imgEl.onload = () => {
+    const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
+    albumM.setAttribute("width", 1);
+    albumM.setAttribute("height", 1 / ratio);
+    albumF.setAttribute("width", 1);
+    albumF.setAttribute("height", 1 / ratio);
+  };
   albumM.setAttribute("src", photos[current]);
   albumF.setAttribute("src", photos[current]);
-  index.textContent = `${current+1} / 6`;
+  index.textContent = `${current + 1} / ${photos.length}`;
 }
 
 setPhoto();
@@ -127,7 +140,7 @@ window.addEventListener("touchstart", e => startX = e.touches[0].clientX);
 window.addEventListener("touchend", e => {
   const dx = e.changedTouches[0].clientX - startX;
   if (Math.abs(dx) > 40) {
-    current = (dx < 0) ? (current+1)%6 : (current+5)%6;
+    current = (dx < 0) ? (current+1)%photos.length : (current+photos.length-1)%photos.length;
     fade(albumM); fade(albumF);
     setPhoto();
   }
@@ -157,7 +170,7 @@ document.querySelector("#toggle").onclick = () => {
     "Markerless: " + (markerless ? "ON" : "OFF");
 };
 
-/* Music */
+/* Music auto-play */
 document.body.addEventListener("click",()=>{
   if(music.paused) music.play().catch(()=>{});
 },{once:true});
