@@ -1,64 +1,167 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Simple AR Test</title>
+<meta charset="utf-8">
+<title>AR Photo Album</title>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
-  <!-- AR.js -->
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-    }
-    #hint {
-      position: fixed;
-      bottom: 10px;
-      width: 100%;
-      text-align: center;
-      color: white;
-      font-family: Arial;
-      background: rgba(0,0,0,0.6);
-      padding: 8px;
-      z-index: 1;
-    }
-  </style>
+<style>
+body { margin: 0; overflow: hidden; font-family: Arial; }
+#ui {
+  position: fixed;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+  color: white;
+  background: rgba(0,0,0,0.6);
+  padding: 8px;
+  z-index: 2;
+}
+#toggle {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: #111;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  z-index: 2;
+}
+#zoom {
+  position: fixed;
+  inset: 0;
+  background: black;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 5;
+}
+#zoom img {
+  max-width: 95%;
+  max-height: 95%;
+}
+</style>
 </head>
 
 <body>
 
-<div id="hint">📷 Point camera at HIRO marker</div>
+<div id="ui">📷 Swipe • Double-tap to zoom • Photo <span id="index">1 / 6</span></div>
+<div id="toggle">Markerless: OFF</div>
 
-<a-scene
-  embedded
-  vr-mode-ui="enabled: false"
-  arjs="sourceType: webcam; debugUIEnabled: false;"
->
+<div id="zoom"><img></div>
 
-  <a-assets>
-    <img id="photo" src="images/p1.PNG">
-  </a-assets>
+<a-scene embedded vr-mode-ui="enabled:false"
+  arjs="sourceType:webcam; debugUIEnabled:false;">
 
-  <!-- HIRO marker -->
-  <a-marker preset="hiro">
-    <a-plane
-      src="#photo"
-      position="0 0 0"
-      rotation="-90 0 0"
-      width="1"
-      height="0.7">
-    </a-plane>
-  </a-marker>
+<a-assets>
+  <img id="img1" src="images/photo1.jpg">
+  <img id="img2" src="images/photo2.jpg">
+  <img id="img3" src="images/photo3.jpg">
+  <img id="img4" src="images/photo4.jpg">
+  <img id="img5" src="images/photo5.jpg">
+  <img id="img6" src="images/photo6.jpg">
+  <audio id="bgm" src="audio/music.mp3" preload="auto"></audio>
+</a-assets>
 
-  <a-entity camera></a-entity>
+<!-- MARKER MODE -->
+<a-marker id="marker" preset="hiro">
+  <a-plane id="albumMarker"
+    position="0 0 0"
+    rotation="-90 0 0"
+    width="1"
+    height="0.7"
+    material="shader:flat; opacity:1">
+  </a-plane>
+</a-marker>
 
+<!-- MARKERLESS MODE -->
+<a-entity id="markerless" visible="false">
+  <a-plane id="albumFree"
+    position="0 0 -2"
+    rotation="0 0 0"
+    width="1"
+    height="0.7"
+    material="shader:flat; opacity:1">
+  </a-plane>
+</a-entity>
+
+<a-entity camera></a-entity>
 </a-scene>
+
+<script>
+const photos = ["#img1","#img2","#img3","#img4","#img5","#img6"];
+let current = 0;
+let zoomed = false;
+let markerless = false;
+
+const albumM = document.querySelector("#albumMarker");
+const albumF = document.querySelector("#albumFree");
+const marker = document.querySelector("#marker");
+const free = document.querySelector("#markerless");
+const index = document.querySelector("#index");
+const zoom = document.querySelector("#zoom");
+const zoomImg = zoom.querySelector("img");
+const music = document.querySelector("#bgm");
+
+function setPhoto() {
+  albumM.setAttribute("src", photos[current]);
+  albumF.setAttribute("src", photos[current]);
+  index.textContent = `${current+1} / 6`;
+}
+
+setPhoto();
+
+/* Fade animation */
+function fade(el) {
+  el.setAttribute("material","opacity:0");
+  setTimeout(()=>el.setAttribute("material","opacity:1"),150);
+}
+
+/* Swipe */
+let startX = 0;
+window.addEventListener("touchstart", e => startX = e.touches[0].clientX);
+window.addEventListener("touchend", e => {
+  const dx = e.changedTouches[0].clientX - startX;
+  if (Math.abs(dx) > 40) {
+    current = (dx < 0) ? (current+1)%6 : (current+5)%6;
+    fade(albumM); fade(albumF);
+    setPhoto();
+  }
+});
+
+/* Double tap zoom */
+let lastTap = 0;
+function handleTap() {
+  const now = Date.now();
+  if (now - lastTap < 300) {
+    zoom.style.display = "flex";
+    zoomImg.src = document.querySelector(photos[current]).src;
+  }
+  lastTap = now;
+}
+albumM.addEventListener("click", handleTap);
+albumF.addEventListener("click", handleTap);
+
+zoom.addEventListener("click",()=>zoom.style.display="none");
+
+/* Markerless toggle */
+document.querySelector("#toggle").onclick = () => {
+  markerless = !markerless;
+  marker.setAttribute("visible", !markerless);
+  free.setAttribute("visible", markerless);
+  document.querySelector("#toggle").textContent =
+    "Markerless: " + (markerless ? "ON" : "OFF");
+};
+
+/* Music */
+document.body.addEventListener("click",()=>{
+  if(music.paused) music.play().catch(()=>{});
+},{once:true});
+</script>
 
 </body>
 </html>
